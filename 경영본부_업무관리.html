@@ -297,6 +297,7 @@ textarea.fc{height:auto;min-height:52px;padding:7px 10px;resize:vertical;line-he
     <div class="sb-sec">메뉴</div>
     <button class="sb-item on" onclick="goPage('cal',this)"><i class="ti ti-calendar-month"></i>캘린더</button>
     <button class="sb-item" onclick="goPage('tasks',this)"><i class="ti ti-list-details"></i>업무 목록<span class="sb-badge" id="nb" style="display:none">0</span></button>
+    <button class="sb-item" onclick="goPage('minutes',this)"><i class="ti ti-notebook"></i>회의록</button>
     <button class="sb-item" onclick="goPage('settings',this)"><i class="ti ti-settings-2"></i>설정</button>
   </nav>
   <div class="sb-bot">
@@ -408,6 +409,29 @@ textarea.fc{height:auto;min-height:52px;padding:7px 10px;resize:vertical;line-he
           <div class="empty-ic"><i class="ti ti-search-off"></i></div>
           <div class="empty-t">업무가 없습니다</div>
           <div class="empty-s">필터를 바꾸거나 업무를 추가하세요</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MINUTES PAGE -->
+    <div class="page" id="page-minutes">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:11px;color:var(--ink4)">주간 회의록을 날짜별로 기록합니다. 회의에서 나온 업무를 바로 등록할 수 있습니다.</div>
+        <button class="btn btn-p" onclick="openMinuteModal()"><i class="ti ti-plus"></i>회의록 작성</button>
+      </div>
+      <div style="display:grid;grid-template-columns:260px 1fr;gap:12px;align-items:start">
+        <!-- 왼쪽: 회의록 목록 -->
+        <div style="background:var(--white);border:1px solid var(--line);border-radius:var(--r4);overflow:hidden;box-shadow:var(--sh1)">
+          <div style="padding:10px 14px;border-bottom:1px solid var(--line);background:var(--canvas);font-size:12px;font-weight:700;color:var(--ink)">회의 목록</div>
+          <div id="minute-list" style="max-height:600px;overflow-y:auto"></div>
+        </div>
+        <!-- 오른쪽: 회의록 상세 -->
+        <div id="minute-detail" style="background:var(--white);border:1px solid var(--line);border-radius:var(--r4);overflow:hidden;box-shadow:var(--sh1);min-height:400px">
+          <div class="empty" style="padding:60px 20px">
+            <div class="empty-ic"><i class="ti ti-notebook"></i></div>
+            <div class="empty-t">회의록을 선택하세요</div>
+            <div class="empty-s">왼쪽 목록에서 회의를 클릭하면 내용이 표시됩니다</div>
+          </div>
         </div>
       </div>
     </div>
@@ -544,6 +568,41 @@ textarea.fc{height:auto;min-height:52px;padding:7px 10px;resize:vertical;line-he
   <div class="md-foot"><button class="btn" onclick="CM('cemod')">취소</button><button class="btn btn-p" onclick="saveCatE()"><i class="ti ti-check"></i>저장</button></div>
 </div>
 </div>
+<!-- MINUTE MODAL -->
+<div class="ov" id="minmod">
+<div class="md" style="max-width:620px">
+  <div class="md-head">
+    <div><div class="md-title" id="min-title">회의록 작성</div><div class="md-sub">주간 회의 내용을 기록합니다</div></div>
+    <button class="md-close" onclick="CM('minmod')"><i class="ti ti-x"></i></button>
+  </div>
+  <div class="md-body">
+    <div class="fsec"><i class="ti ti-calendar"></i>회의 기본 정보</div>
+    <div class="fr">
+      <div class="fld"><label class="flbl">회의 날짜 <span class="rq">*</span></label><input type="date" class="fc" id="min-date"></div>
+      <div class="fld"><label class="flbl">회의 제목</label><input class="fc" id="min-ttl" placeholder="예) 8월 2주차 주간회의"></div>
+    </div>
+    <div class="fr">
+      <div class="fld"><label class="flbl">참석자</label><input class="fc" id="min-att" placeholder="예) 김병주, 경영본부, 이현아"></div>
+      <div class="fld"><label class="flbl">작성자</label><select class="fc" id="min-auth"></select></div>
+    </div>
+    <div class="fsec"><i class="ti ti-list"></i>회의 내용</div>
+    <div class="fld"><label class="flbl">안건</label><textarea class="fc" id="min-agenda" placeholder="이번 회의 안건을 입력하세요" style="min-height:60px"></textarea></div>
+    <div class="fld"><label class="flbl">논의 내용</label><textarea class="fc" id="min-disc" placeholder="회의에서 논의된 내용을 입력하세요" style="min-height:80px"></textarea></div>
+    <div class="fld"><label class="flbl">결정 사항</label><textarea class="fc" id="min-deci" placeholder="최종 결정된 사항을 입력하세요" style="min-height:60px"></textarea></div>
+    <div class="fld"><label class="flbl">특이사항 / 메모</label><textarea class="fc" id="min-note" placeholder="기타 메모 (선택)" style="min-height:46px"></textarea></div>
+    <div class="fsec"><i class="ti ti-clipboard-list"></i>회의에서 나온 업무 등록</div>
+    <div style="background:var(--canvas);border:1px solid var(--line);border-radius:var(--r2);padding:10px 12px;margin-bottom:11px">
+      <div id="min-task-list" style="margin-bottom:8px"></div>
+      <button class="btn btn-sm" onclick="addMinTask()"><i class="ti ti-plus"></i>업무 추가</button>
+    </div>
+  </div>
+  <div class="md-foot">
+    <button class="btn" onclick="CM('minmod')">취소</button>
+    <button class="btn btn-p" onclick="saveMinute()"><i class="ti ti-check"></i>저장</button>
+  </div>
+</div>
+</div>
+
 <!-- UPLOAD MODAL -->
 <div class="ov" id="umod">
 <div class="md" style="max-width:780px">
@@ -657,6 +716,180 @@ const DC=['세무·회계','인사·노무','법무·계약','경영·보고','I
 
 /* STORAGE */
 
+/* ══ 회의록 ══ */
+let minutes=[], selMinId=null, minTasks=[], minEditId=null;
+
+async function loadMinutes(){
+  const sb=getSupa();if(!sb)return;
+  try{
+    const {data,error}=await sb.from('minutes').select('*').order('meeting_date',{ascending:false});
+    if(error)throw error;
+    minutes=(data||[]);
+    renderMinuteList();
+  }catch(e){console.warn('회의록 로드 실패',e);}
+}
+function renderMinuteList(){
+  const el=document.getElementById('minute-list');if(!el)return;
+  if(!minutes.length){
+    el.innerHTML='<div style="padding:20px;text-align:center;font-size:11px;color:var(--ink4)">작성된 회의록이 없습니다</div>';
+    return;
+  }
+  // 월별 그룹핑
+  const groups={};
+  minutes.forEach(m=>{
+    const ym=m.meeting_date.slice(0,7);
+    if(!groups[ym])groups[ym]=[];
+    groups[ym].push(m);
+  });
+  el.innerHTML=Object.entries(groups).map(([ym,list])=>`
+    <div style="padding:6px 14px 3px;font-size:9px;font-weight:800;color:var(--ink4);letter-spacing:.06em;text-transform:uppercase;background:var(--canvas);border-bottom:1px solid var(--line)">${ym.replace('-','년 ')}월</div>
+    ${list.map(m=>{
+      const d=new Date(m.meeting_date+'T12:00:00');
+      const dow=['일','월','화','수','목','금','토'][d.getDay()];
+      const taskCnt=m.linked_tasks?JSON.parse(m.linked_tasks).length:0;
+      return`<div class="min-item${selMinId===m.id?' active':''}" onclick="selectMinute(${m.id})" style="padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .1s;${selMinId===m.id?'background:var(--blue-l);border-left:3px solid var(--blue);':''}">
+        <div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:3px">${m.title||m.meeting_date+' 회의'}</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span style="font-size:10px;color:var(--ink4)">${m.meeting_date} (${dow})</span>
+          ${taskCnt?`<span class="bdg bdg-blu" style="font-size:8.5px">${taskCnt}개 업무</span>`:''}
+        </div>
+        ${m.attendees?`<div style="font-size:9.5px;color:var(--ink4);margin-top:2px">${m.attendees}</div>`:''}
+      </div>`;
+    }).join('')}
+  `).join('');
+}
+function selectMinute(id){
+  selMinId=id;
+  renderMinuteList();
+  const m=minutes.find(x=>x.id===id);if(!m)return;
+  const d=new Date(m.meeting_date+'T12:00:00');
+  const dow=['일','월','화','수','목','금','토'][d.getDay()];
+  const linkedTasks=m.linked_tasks?JSON.parse(m.linked_tasks):[];
+  const relatedTasks=tasks.filter(t=>linkedTasks.includes(t.id));
+  document.getElementById('minute-detail').innerHTML=`
+    <div style="padding:14px 18px;border-bottom:1px solid var(--line);background:var(--canvas);display:flex;align-items:flex-start;justify-content:space-between">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:4px">${m.title||m.meeting_date+' 회의'}</div>
+        <div style="display:flex;gap:10px;font-size:11px;color:var(--ink4)">
+          <span><i class="ti ti-calendar" style="font-size:11px"></i> ${m.meeting_date} (${dow})</span>
+          ${m.attendees?`<span><i class="ti ti-users" style="font-size:11px"></i> ${m.attendees}</span>`:''}
+          ${m.author?`<span><i class="ti ti-pencil" style="font-size:11px"></i> ${m.author}</span>`:''}
+        </div>
+      </div>
+      <div style="display:flex;gap:5px">
+        <button class="bic edt" onclick="editMinute(${m.id})" title="수정"><i class="ti ti-edit"></i></button>
+        <button class="bic del" onclick="deleteMinute(${m.id})" title="삭제"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>
+    <div style="padding:16px 18px">
+      ${m.agenda?`<div style="margin-bottom:14px"><div style="font-size:9px;font-weight:800;color:var(--ink4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">📋 안건</div><div style="font-size:12px;color:var(--ink);line-height:1.7;white-space:pre-wrap;background:var(--canvas);border:1px solid var(--line);border-radius:var(--r2);padding:9px 12px">${m.agenda}</div></div>`:''}
+      ${m.discussion?`<div style="margin-bottom:14px"><div style="font-size:9px;font-weight:800;color:var(--ink4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">💬 논의 내용</div><div style="font-size:12px;color:var(--ink);line-height:1.7;white-space:pre-wrap;background:var(--canvas);border:1px solid var(--line);border-radius:var(--r2);padding:9px 12px">${m.discussion}</div></div>`:''}
+      ${m.decision?`<div style="margin-bottom:14px"><div style="font-size:9px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">✅ 결정 사항</div><div style="font-size:12px;color:var(--ink);line-height:1.7;white-space:pre-wrap;background:var(--blue-l);border:1px solid var(--blue-b);border-radius:var(--r2);padding:9px 12px">${m.decision}</div></div>`:''}
+      ${m.note?`<div style="margin-bottom:14px"><div style="font-size:9px;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">📝 특이사항</div><div style="font-size:12px;color:var(--ink);line-height:1.7;white-space:pre-wrap;background:var(--amber-l);border:1px solid var(--amber-b);border-radius:var(--r2);padding:9px 12px">${m.note}</div></div>`:''}
+      ${relatedTasks.length?`<div><div style="font-size:9px;font-weight:800;color:var(--ink4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">🗂 연결된 업무 (${relatedTasks.length}개)</div>${relatedTasks.map(t=>{const eff=effDue(t);const d2=eff?dDiff(eff):999;let dc='ok',dl=eff?'D-'+d2:'';if(t.done){dc='gc';dl='완료';}else if(d2<0){dc='ov';dl=Math.abs(d2)+'일 초과';}else if(d2===0){dc='tc';dl='오늘';}else if(d2<=5){dc='sc';dl='D-'+d2;}return`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--r2);margin-bottom:4px"><span class="bdg bdg-${t.type==='regular'?'pur':t.type==='period'?'tel':'blu'}" style="font-size:8.5px">${TL[t.type]}</span><span style="flex:1;font-size:12px;font-weight:600;color:var(--ink)">${t.title}</span><span class="dc ${dc}" style="font-size:9.5px">${eff} <strong>${dl}</strong></span><span style="font-size:10px;color:var(--ink4)">${t.owner||''}</span></div>`;}).join('')}</div>`:''}
+    </div>`;
+}
+function openMinuteModal(){
+  minEditId=null;minTasks=[];
+  document.getElementById('min-title').textContent='회의록 작성';
+  document.getElementById('min-date').value=tod();
+  document.getElementById('min-ttl').value='';
+  document.getElementById('min-att').value=members.map(m=>m.name).join(', ');
+  document.getElementById('min-disc').value='';
+  document.getElementById('min-agenda').value='';
+  document.getElementById('min-deci').value='';
+  document.getElementById('min-note').value='';
+  document.getElementById('min-auth').innerHTML=members.map(m=>`<option value="${m.name}">${m.name}</option>`).join('');
+  renderMinTasks();
+  OM('minmod');
+}
+function editMinute(id){
+  const m=minutes.find(x=>x.id===id);if(!m)return;
+  minEditId=id;
+  const linked=m.linked_tasks?JSON.parse(m.linked_tasks):[];
+  minTasks=tasks.filter(t=>linked.includes(t.id)).map(t=>({...t}));
+  document.getElementById('min-title').textContent='회의록 수정';
+  document.getElementById('min-date').value=m.meeting_date;
+  document.getElementById('min-ttl').value=m.title||'';
+  document.getElementById('min-att').value=m.attendees||'';
+  document.getElementById('min-agenda').value=m.agenda||'';
+  document.getElementById('min-disc').value=m.discussion||'';
+  document.getElementById('min-deci').value=m.decision||'';
+  document.getElementById('min-note').value=m.note||'';
+  document.getElementById('min-auth').innerHTML=members.map(mem=>`<option value="${mem.name}"${mem.name===m.author?' selected':''}>${mem.name}</option>`).join('');
+  renderMinTasks();
+  OM('minmod');
+}
+function addMinTask(){
+  minTasks.push({id:Date.now(),title:'',type:'irregular',cat:cats[0]||'기타',due:tod(),owner:'',repeat:'none',repeatEnd:'',holRule:'before',done:false,desc:'',issue:'',memo:''});
+  renderMinTasks();
+}
+function renderMinTasks(){
+  const el=document.getElementById('min-task-list');
+  if(!minTasks.length){el.innerHTML='<div style="font-size:10.5px;color:var(--ink4);text-align:center;padding:6px 0">업무를 추가하면 회의록과 함께 업무 목록에 등록됩니다</div>';return;}
+  el.innerHTML=minTasks.map((t,i)=>`
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;background:var(--white);border:1px solid var(--line);border-radius:var(--r2);padding:7px 9px">
+      <input class="fc" value="${t.title}" placeholder="업무명" oninput="minTasks[${i}].title=this.value" style="flex:2;height:30px;font-size:11.5px">
+      <input type="date" class="fc" value="${t.due}" oninput="minTasks[${i}].due=this.value" style="width:130px;height:30px;font-size:11px">
+      <select class="fc" onchange="minTasks[${i}].owner=this.value" style="width:90px;height:30px;font-size:11px">
+        <option value="">미지정</option>
+        ${members.map(m=>`<option value="${m.name}"${m.name===t.owner?' selected':''}>${m.name}</option>`).join('')}
+      </select>
+      <button class="bic del" onclick="minTasks.splice(${i},1);renderMinTasks()" style="width:24px;height:24px;flex-shrink:0"><i class="ti ti-x" style="font-size:11px"></i></button>
+    </div>`).join('');
+}
+async function saveMinute(){
+  const date=document.getElementById('min-date').value;
+  if(!date){alert('회의 날짜를 입력하세요.');return;}
+  // 연결 업무 먼저 tasks에 등록
+  const newTaskIds=[];
+  for(const t of minTasks){
+    if(!t.title.trim())continue;
+    const newT={...t,id:t.id||Date.now()+Math.random()};
+    const exists=tasks.find(x=>x.id===newT.id);
+    if(!exists)tasks.push(newT);
+    newTaskIds.push(newT.id);
+  }
+  const sb=getSupa();
+  const minObj={
+    id:minEditId||Date.now(),
+    meeting_date:date,
+    title:document.getElementById('min-ttl').value.trim()||date+' 주간회의',
+    attendees:document.getElementById('min-att').value.trim(),
+    author:document.getElementById('min-auth').value,
+    agenda:document.getElementById('min-agenda').value.trim(),
+    discussion:document.getElementById('min-disc').value.trim(),
+    decision:document.getElementById('min-deci').value.trim(),
+    note:document.getElementById('min-note').value.trim(),
+    linked_tasks:JSON.stringify(newTaskIds)
+  };
+  if(sb){
+    try{
+      await sb.from('minutes').upsert(minObj);
+      // 연결 업무도 Supabase에 저장
+      if(newTaskIds.length){
+        const newTasksData=tasks.filter(t=>newTaskIds.includes(t.id)).map(t=>({id:t.id,title:t.title,type:t.type,cat:t.cat,due:t.due||null,start_date:t.start||null,end_date:t.end||null,owner:t.owner||null,repeat:t.repeat,repeat_end:t.repeatEnd||null,hol_rule:t.holRule||'before',done:false,issue:t.issue||null,memo:t.memo||null,description:t.desc||null}));
+        await sb.from('tasks').upsert(newTasksData);
+      }
+    }catch(e){console.warn('회의록 저장 실패',e);}
+  }
+  minutes=minEditId?minutes.map(x=>x.id===minEditId?minObj:x):[minObj,...minutes];
+  selMinId=minObj.id;
+  CM('minmod');
+  renderMinuteList();
+  selectMinute(minObj.id);
+  renderAll();
+}
+async function deleteMinute(id){
+  if(!confirm('이 회의록을 삭제할까요?'))return;
+  const sb=getSupa();
+  if(sb){try{await sb.from('minutes').delete().eq('id',id);}catch(e){}}
+  minutes=minutes.filter(x=>x.id!==id);
+  selMinId=null;
+  renderMinuteList();
+  document.getElementById('minute-detail').innerHTML='<div class="empty" style="padding:60px 20px"><div class="empty-ic"><i class="ti ti-notebook"></i></div><div class="empty-t">회의록을 선택하세요</div></div>';
+}
+
 async function loadAll(){
   const sb=getSupa();
   if(!sb){tasks=DT;members=DM;cats=DC;renderAll();return;}
@@ -682,6 +915,7 @@ async function loadAll(){
     updSupaUI(true);
     renderAll();
     startRealtime();
+    loadMinutes();
   }catch(e){
     console.warn('Supabase 연결 실패:', e.message);
     updSupaUI(false);
@@ -707,6 +941,7 @@ function startRealtime(){
       .on('postgres_changes',{event:'*',schema:'public',table:'tasks'},()=>reloadTasks())
       .on('postgres_changes',{event:'*',schema:'public',table:'members'},()=>reloadMembers())
       .on('postgres_changes',{event:'*',schema:'public',table:'cats'},()=>reloadCats())
+      .on('postgres_changes',{event:'*',schema:'public',table:'minutes'},()=>loadMinutes())
       .subscribe((status)=>{
         console.log('Realtime 상태:', status);
         if(status==='SUBSCRIBED'){
@@ -1011,8 +1246,8 @@ function goPage(p,el){
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.sb-item').forEach(x=>x.classList.remove('on'));
   document.getElementById('page-'+p).classList.add('on');if(el)el.classList.add('on');
-  document.getElementById('ptitle').textContent={cal:'캘린더',tasks:'업무 목록',settings:'설정'}[p];
-  if(p==='settings')rSettings();if(p==='cal')rCal();
+  document.getElementById('ptitle').textContent={cal:'캘린더',tasks:'업무 목록',minutes:'회의록',settings:'설정'}[p];
+  if(p==='settings')rSettings();if(p==='cal')rCal();if(p==='minutes'){renderMinuteList();}
 }
 function navFilter(p,f){
   curF=f;document.querySelectorAll('.sb-item').forEach(x=>x.classList.remove('on'));
