@@ -978,12 +978,20 @@ function startPolling(){
   pollTimer=setInterval(async()=>{
     const sb=getSupa();if(!sb)return;
     try{
-      const {data}=await sb.from('tasks').select('*').order('id');
-      if(data){
-        const newTasks=data.map(r=>({id:r.id,title:r.title,type:r.type||'regular',cat:r.cat||'',due:r.due||'',start:r.start_date||'',end:r.end_date||'',owner:r.owner||'',repeat:r.repeat||'none',repeatEnd:r.repeat_end||'',holRule:r.hol_rule||'before',done:r.done||false,issue:r.issue||'',memo:r.memo||'',desc:r.description||''}));
-        // 변경사항 있을 때만 렌더
-        if(JSON.stringify(newTasks)!==JSON.stringify(tasks)){tasks=newTasks;renderAll();}
+      const [tr,mr]=await Promise.all([
+        sb.from('tasks').select('*').order('id'),
+        sb.from('members').select('*').order('id')
+      ]);
+      let changed=false;
+      if(tr.data){
+        const newTasks=tr.data.map(r=>({id:r.id,title:r.title,type:r.type||'regular',cat:r.cat||'',due:r.due||'',start:r.start_date||'',end:r.end_date||'',owner:r.owner||'',repeat:r.repeat||'none',repeatEnd:r.repeat_end||'',holRule:r.hol_rule||'before',done:r.done||false,issue:r.issue||'',memo:r.memo||'',desc:r.description||''}));
+        if(JSON.stringify(newTasks)!==JSON.stringify(tasks)){tasks=newTasks;changed=true;}
       }
+      if(mr.data){
+        const newMembers=mr.data.map(r=>({id:r.id,name:r.name,role:r.role||'',color:r.color||0}));
+        if(JSON.stringify(newMembers)!==JSON.stringify(members)){members=newMembers;changed=true;}
+      }
+      if(changed)renderAll();
     }catch(e){console.warn('폴링 오류',e);}
   },10000); // 10초마다
 }
@@ -1146,7 +1154,11 @@ function openDay(ds){
   document.getElementById('spdate').textContent=`${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${KD[d.getDay()]})`;
   let sub='';if(hn)sub=`🎌 ${hn}`;else if(d.getDay()===0)sub='일요일';else if(d.getDay()===6)sub='토요일';
   document.getElementById('spsub').textContent=sub;
-  const map=buildMap(ds,ds),ents=(map[ds]||[]).sort((a,b)=>uScr(a.task)-uScr(b.task));
+  // 반복 예정 업무 포함을 위해 충분한 범위로 buildMap 호출
+  const dsD=D(ds);
+  const fromD=new Date(dsD);fromD.setFullYear(fromD.getFullYear()-1);
+  const toD=new Date(dsD);toD.setFullYear(toD.getFullYear()+3);
+  const map=buildMap(ymd(fromD),ymd(toD)),ents=(map[ds]||[]).sort((a,b)=>uScr(a.task)-uScr(b.task));
   const body=document.getElementById('spbody');
   if(!ents.length){body.innerHTML=`<div class="sp-empty"><i class="ti ti-calendar-off"></i><div style="font-size:11.5px;font-weight:600;color:var(--ink2)">업무 없음</div></div>`;return;}
   body.innerHTML=ents.map(e=>{
