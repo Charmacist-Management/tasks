@@ -1114,7 +1114,14 @@ function buildMap(from,to){
         if(nl>to)break;
         if(t.repeatEnd&&nl>t.repeatEnd)break;
         const ne=gEff(nl,t.holRule||'before');
-        if(!tasks.some(x=>x.title===t.title&&x.due===nl))add(ne,t,true);
+        // 같은 논리기준일 OR 같은 실행일의 미완료 업무가 이미 있으면 virt 추가 안 함
+        const alreadyExists=tasks.some(x=>
+          x.title===t.title&&(
+            x.due===nl||  // 논리기준일 일치
+            (effDue(x)===ne&&!x.done)  // 실행일 일치 + 미완료
+          )
+        );
+        if(!alreadyExists)add(ne,t,true);
         cur=nl;
       }
     }
