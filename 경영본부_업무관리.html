@@ -860,7 +860,7 @@ async function saveMinute(){
   const newTaskIds=[];
   for(const t of minTasks){
     if(!t.title.trim())continue;
-    const newT={...t,id:t.id||Date.now()+Math.random()};
+    const newT={...t,id:t.id||Date.now()+Math.floor(Math.random()*1000)};
     const exists=tasks.find(x=>x.id===newT.id);
     if(!exists)tasks.push(newT);
     newTaskIds.push(newT.id);
@@ -1026,17 +1026,40 @@ async function saveAll(){
   const sb=getSupa();
   if(sb){
     try{
-      const tm=tasks.map(t=>({id:t.id,title:t.title,type:t.type,cat:t.cat,due:t.due||null,start_date:t.start||null,end_date:t.end||null,owner:t.owner||null,repeat:t.repeat,repeat_end:t.repeatEnd||null,hol_rule:t.holRule||'before',done:t.done,issue:t.issue||null,memo:t.memo||null,description:t.desc||null}));
-      const mm=members.map(m=>({id:m.id,name:m.name,role:m.role||null,color:m.color||0}));
+      // tasks: upsert 후 삭제 (순차 처리)
+      const tm=tasks.map(t=>({
+        id:Math.round(t.id), // 정수 보장
+        title:t.title,type:t.type,cat:t.cat,
+        due:t.due||null,start_date:t.start||null,end_date:t.end||null,
+        owner:t.owner||null,repeat:t.repeat,repeat_end:t.repeatEnd||null,
+        hol_rule:t.holRule||'before',done:t.done,
+        issue:t.issue||null,memo:t.memo||null,description:t.desc||null
+      }));
+      await sb.from('tasks').upsert(tm);
+      const {data:dbT}=await sb.from('tasks').select('id');
+      if(dbT){
+        const lIds=new Set(tm.map(t=>t.id));
+        const toDel=dbT.filter(r=>!lIds.has(r.id)).map(r=>r.id);
+        if(toDel.length)await sb.from('tasks').delete().in('id',toDel);
+      }
+      // members: upsert 후 삭제
+      const mm=members.map(m=>({id:Math.round(m.id),name:m.name,role:m.role||null,color:m.color||0}));
+      await sb.from('members').upsert(mm);
+      const {data:dbM}=await sb.from('members').select('id');
+      if(dbM){
+        const lIds=new Set(mm.map(m=>m.id));
+        const toDel=dbM.filter(r=>!lIds.has(r.id)).map(r=>r.id);
+        if(toDel.length)await sb.from('members').delete().in('id',toDel);
+      }
+      // cats: upsert 후 삭제
       const cm=cats.map((n,i)=>({name:n,sort_order:i}));
-      await Promise.all([sb.from('tasks').upsert(tm),sb.from('members').upsert(mm),sb.from('cats').upsert(cm)]);
-      // 삭제된 항목 처리
-      const {data:dbTasks}=await sb.from('tasks').select('id');
-      if(dbTasks){const localIds=new Set(tasks.map(t=>t.id));const toDelete=dbTasks.filter(r=>!localIds.has(r.id)).map(r=>r.id);if(toDelete.length)await sb.from('tasks').delete().in('id',toDelete);}
-      const {data:dbMembers}=await sb.from('members').select('id');
-      if(dbMembers){const localIds=new Set(members.map(m=>m.id));const toDelete=dbMembers.filter(r=>!localIds.has(r.id)).map(r=>r.id);if(toDelete.length)await sb.from('members').delete().in('id',toDelete);}
-      const {data:dbCats}=await sb.from('cats').select('name');
-      if(dbCats){const localNames=new Set(cats);const toDelete=dbCats.filter(r=>!localNames.has(r.name)).map(r=>r.name);if(toDelete.length)await sb.from('cats').delete().in('name',toDelete);}
+      await sb.from('cats').upsert(cm);
+      const {data:dbC}=await sb.from('cats').select('name');
+      if(dbC){
+        const lNames=new Set(cats);
+        const toDel=dbC.filter(r=>!lNames.has(r.name)).map(r=>r.name);
+        if(toDel.length)await sb.from('cats').delete().in('name',toDel);
+      }
     }catch(e){console.warn('Supabase save failed',e);}
   }
   renderAll();
@@ -1188,7 +1211,7 @@ function openDay(ds){
 }
 function addOnDate(){openTask();setTimeout(()=>{if(datePre){document.getElementById('fdue').value=datePre;onDue();}},50);}
 function qDone(id,ds){const t=tasks.find(x=>x.id===id);if(!t)return;t.done=!t.done;if(t.done&&t.repeat!=='none')autoNext(t);saveAll();openDay(ds);}
-function autoNext(t){if(t.repeat==='none')return;const nl=nxtL(t.due,t.repeat);if(t.repeatEnd&&nl>t.repeatEnd)return;if(tasks.some(x=>x.title===t.title&&x.due===nl&&!x.done))return;tasks.push({...t,id:Date.now()+Math.random(),due:nl,done:false,issue:'',memo:''});}
+function autoNext(t){if(t.repeat==='none')return;const nl=nxtL(t.due,t.repeat);if(t.repeatEnd&&nl>t.repeatEnd)return;if(tasks.some(x=>x.title===t.title&&x.due===nl&&!x.done))return;tasks.push({...t,id:Date.now()+Math.floor(Math.random()*1000),due:nl,done:false,issue:'',memo:''});}
 function goCalDay(ds){const d=D(ds);calY=d.getFullYear();calM=d.getMonth();document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('on'));document.getElementById('page-cal').classList.add('on');document.querySelector('.sb-item[onclick*="cal"]').classList.add('on');document.getElementById('ptitle').textContent='캘린더';rCal();openDay(ds);}
 
 /* TASKS LIST */
@@ -1341,7 +1364,7 @@ function saveTask(){
   let due='',start='',end='';
   if(type==='period'){start=document.getElementById('fstart').value;end=document.getElementById('fend').value;if(!start||!end){alert('기간업무는 시작일과 종료일을 입력하세요.');return;}}
   else{due=document.getElementById('fdue').value;if(!due){alert('마감일을 입력하세요.');return;}}
-  const obj={id:eid||Date.now(),title,type,cat:document.getElementById('fcat').value,due,start,end,
+  const obj={id:eid||(Date.now()+Math.floor(Math.random()*1000)),title,type,cat:document.getElementById('fcat').value,due,start,end,
     owner:type==='period'?document.getElementById('fownp').value:document.getElementById('fown').value,
     repeat:type==='regular'?document.getElementById('frep').value:'none',
     repeatEnd:type==='regular'?document.getElementById('frend').value:'',
@@ -1625,7 +1648,7 @@ function confirmUpl(){
   valid.forEach(r=>{
     if(r.cat&&!cats.includes(r.cat)){cats.push(r.cat);nc++;}
     tasks.push({
-      id:Date.now()+Math.random(),
+      id:Date.now()+Math.floor(Math.random()*1000),
       title:r.title,type:r.type,cat:r.cat,
       due:r.due,start:r.start,end:r.end,
       owner:r.owner,repeat:r.rep,repeatEnd:r.rend,
