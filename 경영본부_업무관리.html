@@ -1201,25 +1201,39 @@ function uScr(t){if(t.done)return 9000;if(isExp(t))return 8000;const e=effDue(t)
 /* ★ 캘린더 맵: 반복 미래일은 논리기준→effDue로 배치 */
 function buildMap(from,to){
   const map={};
-  const add=(ds,task,virt)=>{if(!ds||ds<from||ds>to)return;if(!map[ds])map[ds]=[];map[ds].push({task,ds,virt});};
+  // 같은 날짜+같은 업무 중복 방지용 Set
+  const addedKeys=new Set();
+  const add=(ds,task,virt)=>{
+    if(!ds||ds<from||ds>to)return;
+    const key=ds+'|'+task.id+'|'+task.title;
+    if(addedKeys.has(key))return; // 중복 방지
+    addedKeys.add(key);
+    if(!map[ds])map[ds]=[];
+    map[ds].push({task,ds,virt});
+  };
   tasks.forEach(t=>{
     if(t.type==='period'){
       if(t.start&&t.end){let d=D(t.start);while(ymd(d)<=t.end&&ymd(d)<=to){const s=ymd(d);if(s>=from)add(s,t,false);d.setDate(d.getDate()+1);}}
       return;
     }
-    // 실제 등록된 업무만 표시 (완료 여부 무관)
-    add(effDue(t),t,false);
+    // 실제 등록된 업무 표시
+    const eff=effDue(t);
+    add(eff,t,false);
     if(t.repeat!=='none'){
       let cur=t.due,sf=0;
-      // 같은 제목의 모든 업무 논리기준일 Set (중복 방지용)
+      // 같은 제목+유형의 모든 논리기준일 Set
       const existingDues=new Set(tasks.filter(x=>x.title===t.title&&x.type===t.type).map(x=>x.due));
+      // 실제 등록된 업무의 실행일 Set (휴일보정 포함)
+      const existingEffDates=new Set(tasks.filter(x=>x.title===t.title&&x.type===t.type).map(x=>effDue(x)));
       while(sf++<600){
         const nl=nxtL(cur,t.repeat,parseCfg(t));
         if(nl>to)break;
         if(t.repeatEnd&&nl>t.repeatEnd)break;
         const ne=gEff(nl,t.holRule||'before');
-        // 이미 tasks에 같은 논리기준일로 등록된 업무가 있으면 virt 추가 안 함
-        if(!existingDues.has(nl))add(ne,t,true);
+        // 이미 등록된 논리기준일이거나, 같은 실행일이 이미 있으면 skip
+        if(!existingDues.has(nl)&&!existingEffDates.has(ne)){
+          add(ne,t,true);
+        }
         cur=nl;
       }
     }
