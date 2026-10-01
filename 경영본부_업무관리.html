@@ -1201,37 +1201,50 @@ function uScr(t){if(t.done)return 9000;if(isExp(t))return 8000;const e=effDue(t)
 /* ★ 캘린더 맵: 반복 미래일은 논리기준→effDue로 배치 */
 function buildMap(from,to){
   const map={};
-  // 같은 날짜+같은 업무 중복 방지용 Set
   const addedKeys=new Set();
   const add=(ds,task,virt)=>{
     if(!ds||ds<from||ds>to)return;
-    const key=ds+'|'+task.id+'|'+task.title;
-    if(addedKeys.has(key))return; // 중복 방지
+    // 같은 날짜+같은 제목은 1개만 (id 무관)
+    const key=ds+'|'+task.title+'|'+task.type;
+    if(addedKeys.has(key))return;
     addedKeys.add(key);
     if(!map[ds])map[ds]=[];
     map[ds].push({task,ds,virt});
   };
+  // 같은 제목+유형 반복업무는 due가 가장 최신인 것만 미래 반복 계산
+  const latestRepeat={};
+  tasks.forEach(t=>{
+    if(t.repeat==='none'||t.type==='period')return;
+    const key=t.title+'|'+t.type;
+    if(!latestRepeat[key]||t.due>latestRepeat[key].due){
+      latestRepeat[key]=t;
+    }
+  });
   tasks.forEach(t=>{
     if(t.type==='period'){
-      if(t.start&&t.end){let d=D(t.start);while(ymd(d)<=t.end&&ymd(d)<=to){const s=ymd(d);if(s>=from)add(s,t,false);d.setDate(d.getDate()+1);}}
+      if(t.start&&t.end){
+        let d=D(t.start);
+        while(ymd(d)<=t.end&&ymd(d)<=to){
+          const s=ymd(d);if(s>=from)add(s,t,false);
+          d.setDate(d.getDate()+1);
+        }
+      }
       return;
     }
-    // 실제 등록된 업무 표시
-    const eff=effDue(t);
-    add(eff,t,false);
-    if(t.repeat!=='none'){
+    // 실제 등록된 업무는 모두 표시
+    add(effDue(t),t,false);
+    // 미래 반복 예정: 같은 제목+유형 중 due가 가장 최신인 것만 계산
+    const key=t.title+'|'+t.type;
+    if(t.repeat!=='none'&&latestRepeat[key]&&latestRepeat[key].id===t.id){
       let cur=t.due,sf=0;
-      // 같은 제목+유형의 모든 논리기준일 Set
       const existingDues=new Set(tasks.filter(x=>x.title===t.title&&x.type===t.type).map(x=>x.due));
-      // 실제 등록된 업무의 실행일 Set (휴일보정 포함)
-      const existingEffDates=new Set(tasks.filter(x=>x.title===t.title&&x.type===t.type).map(x=>effDue(x)));
+      const existingEffs=new Set(tasks.filter(x=>x.title===t.title&&x.type===t.type).map(x=>effDue(x)));
       while(sf++<600){
         const nl=nxtL(cur,t.repeat,parseCfg(t));
         if(nl>to)break;
         if(t.repeatEnd&&nl>t.repeatEnd)break;
         const ne=gEff(nl,t.holRule||'before');
-        // 이미 등록된 논리기준일이거나, 같은 실행일이 이미 있으면 skip
-        if(!existingDues.has(nl)&&!existingEffDates.has(ne)){
+        if(!existingDues.has(nl)&&!existingEffs.has(ne)){
           add(ne,t,true);
         }
         cur=nl;
