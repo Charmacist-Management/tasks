@@ -1232,7 +1232,12 @@ function buildMap(from,to){
       return;
     }
     // 실제 등록된 업무는 모두 표시
-    add(effDue(t),t,false);
+    const teff=effDue(t);
+    add(teff,t,false);
+    // 기한 초과 미완료 업무 → 오늘 날짜에도 표시 (계속 알림)
+    if(!t.done&&teff&&teff<tod()&&teff!==tod()){
+      add(tod(),t,false);
+    }
     // 미래 반복 예정: 같은 제목+유형 중 due가 가장 최신인 것만 계산
     const key=t.title+'|'+t.type;
     if(t.repeat!=='none'&&latestRepeat[key]&&latestRepeat[key].id===t.id){
